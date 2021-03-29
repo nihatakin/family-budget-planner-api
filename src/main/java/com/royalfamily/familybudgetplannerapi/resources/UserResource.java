@@ -1,7 +1,11 @@
 package com.royalfamily.familybudgetplannerapi.resources;
 
 import com.royalfamily.familybudgetplannerapi.domain.User;
+import com.royalfamily.familybudgetplannerapi.helper.TokenConstants;
 import com.royalfamily.familybudgetplannerapi.services.UserService;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.impl.crypto.MacProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,9 +30,7 @@ public class UserResource {
         String email = (String) userMap.get("email");
         String password = (String) userMap.get("password");
         User user = userService.validateUser(email, password);
-        Map<String, String> map = new HashMap<>();
-        map.put("message", "login successfully");
-        return new ResponseEntity<>(map, HttpStatus.OK);
+        return new ResponseEntity<>(generateJWTToken(user), HttpStatus.OK);
     }
 
     @PostMapping("/register")
@@ -38,8 +40,24 @@ public class UserResource {
         String email = (String) userMap.get("email");
         String password = (String) userMap.get("password");
         User user = userService.registerUser(firstName, lastName, email, password);
+        return new ResponseEntity<>(generateJWTToken(user), HttpStatus.OK);
+    }
+
+    private Map<String, String> generateJWTToken(User user) {
+        long nowMillis = System.currentTimeMillis();
+        Date now = new Date(nowMillis);
+        Date expireDate = new Date(nowMillis + TokenConstants.TOKEN_VALIDITY);
+
+        String token = Jwts.builder().signWith(SignatureAlgorithm.HS256, TokenConstants.API_SECRET_KEY)
+                .setIssuedAt(now)
+                .setExpiration(expireDate)
+                .claim("userId", user.getUserId())
+                .claim("email", user.getEmail())
+                .claim("firstName", user.getFirstName())
+                .claim("lastName", user.getLastName())
+                .compact();
         Map<String, String> map = new HashMap<>();
-        map.put("message", "register successfully");
-        return new ResponseEntity<>(map, HttpStatus.OK);
+        map.put("token", token);
+        return map;
     }
 }

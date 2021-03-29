@@ -1,7 +1,7 @@
 package com.royalfamily.familybudgetplannerapi.repositories;
 
 import com.royalfamily.familybudgetplannerapi.domain.User;
-import com.royalfamily.familybudgetplannerapi.exceptions.EtAuthException;
+import com.royalfamily.familybudgetplannerapi.exceptions.AuthException;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -28,7 +28,7 @@ public class UserRepositoryImpl implements UserRepository {
     JdbcTemplate jdbcTemplate;
 
     @Override
-    public Integer create(String firstName, String lastName, String email, String password) throws EtAuthException {
+    public Integer create(String firstName, String lastName, String email, String password) throws AuthException {
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(10));
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -42,19 +42,19 @@ public class UserRepositoryImpl implements UserRepository {
             }, keyHolder);
             return (Integer) keyHolder.getKeys().get("USER_ID");
         }catch (Exception e) {
-            throw new EtAuthException("Invalid details. Failed to create account");
+            throw new AuthException("Invalid details. Failed to create account");
         }
     }
 
     @Override
-    public User findByEmailAndPassword(String email, String password) throws EtAuthException {
+    public User findByEmailAndPassword(String email, String password) throws AuthException {
         try {
             User user = jdbcTemplate.queryForObject(SQL_FIND_BY_EMAIL, new Object[]{email}, userRowMapper);
             if(!BCrypt.checkpw(password, user.getPassword()))
-                throw new EtAuthException("Invalid email/password");
+                throw new AuthException("Invalid email/password");
             return user;
         }catch (EmptyResultDataAccessException e) {
-            throw new EtAuthException("Invalid email/password");
+            throw new AuthException("Invalid email/password");
         }
     }
 
